@@ -92,5 +92,12 @@
                   
                   
                   }
-   :profiles/dev {}
+   :profiles/dev {:cljsbuild
+                  {:builds
+                   [{:id "dev"
+                     :source-paths ["src" "dev"]
+                     :compiler {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}
+                                :preloads [day8.re-frame-10x.preload]
+                                :main "mayapp.core"
+                                }}]}}
    :profiles/test {}})

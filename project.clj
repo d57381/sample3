@@ -71,7 +71,7 @@
                                  [org.clojure/tools.namespace "1.3.0"]
                                  [pjstadig/humane-test-output "0.11.0"]
                                  [prone "2021-04-23"]
-                                 ;[re-frisk "1.6.0"]
+                                 [re-frisk "1.6.0"]
                                  [day8.re-frame/tracing "0.6.2"]
                                  [day8.re-frame/re-frame-10x "1.2.2"]
                                  [ring/ring-devel "1.9.5"]

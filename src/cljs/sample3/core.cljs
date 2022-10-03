@@ -8,6 +8,7 @@
     [goog.history.EventType :as HistoryEventType]
     [markdown.core :refer [md->html]]
     [sample3.ajax :as ajax]
+    [ajax.core :refer [GET POST]]
     [sample3.events]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
@@ -69,6 +70,41 @@
                                 :params  {:x (:x @data) :y (:y @data)}
                                 :handler #(swap! data assoc :result (:total %))}))
 
+(def app-db (r/atom {:x 0 :y 0 :result 0}))
+
+(rf/reg-event-db
+  :x-change
+  (fn [db [_ x-value]]
+   (assoc db :x x-value)))
+(rf/reg-event-db
+  :y-change
+  (fn [db [_ y-value]]
+    (assoc db :y y-value)))
+(rf/reg-sub
+  :x
+  (fn [db _]
+    (:x db)))
+(rf/reg-sub
+  :y
+  (fn [db _]
+    (:y db)))
+
+(defn x-input []
+  [:div.field
+   [:input.input
+    {:type :number
+     :value @(rf/subscribe [:x])
+     :on-change #(rf/dispatch [:x-change (-> % .-target .-value)])}]])
+
+(defn y-input []
+  [:div.field
+   [:input.input
+    {:type :number
+     :value @(rf/subscribe [:y])
+     :on-change #(rf/dispatch [:y-change (-> % .-target .-value)])}]])
+
+
+
 (defn text-field [tag id data] ;function for input text element. Tag should be :input.input, id is the keyword to access data (:x or :y)
       [:div.field
        [tag
@@ -120,9 +156,15 @@
       )
 
 (defn home-page []
-  [:section.section>div.container>div.content
-   (when-let [docs @(rf/subscribe [:docs])]
-     [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
+  ;[:section.section>div.container>div.content
+  ; (when-let [docs @(rf/subscribe [:docs])]
+  ;   [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])]
+  [:div
+   [:p "Enter First Value:"]
+   [x-input]
+   [:p "Enter Second Value:"]
+  [y-input]]
+  )
 
 (defn page []
   (if-let [page @(rf/subscribe [:common/page])]

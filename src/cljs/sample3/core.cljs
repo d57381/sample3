@@ -43,7 +43,7 @@
 
 (defn postSum [data]
       (POST "/api/math/plus"    {:headers {"accept" "application/json"}
-                                 :params {:x (:x @data) :y (:y @data)}
+                                 :params {:x @(rf/subscribe [:x]) :y @(rf/subscribe [:y])}
                                  :handler #(swap! data assoc :result (:total %))})
       )
 
@@ -73,13 +73,28 @@
 (def app-db (r/atom {:x 0 :y 0 :result 0}))
 
 (rf/reg-event-db
+  :initialize
+  (fn [_ _]
+    {:x 0
+     :y 0
+     :result 0}))
+(rf/reg-event-db
   :x-change
   (fn [db [_ x-value]]
-   (assoc db :x x-value)))
+   (assoc db :x x-value :result 0)
+    ))
 (rf/reg-event-db
   :y-change
   (fn [db [_ y-value]]
-    (assoc db :y y-value)))
+    (assoc db :y y-value :result 0)))
+(rf/reg-event-db
+  :add
+  (fn [db _]
+    (assoc db :result (+ @(rf/subscribe [:x]) @(rf/subscribe [:y])))))
+(rf/reg-event-db
+  :set-zero
+  (fn [db _]
+    (assoc db :result 0)))
 (rf/reg-sub
   :x
   (fn [db _]
@@ -88,20 +103,34 @@
   :y
   (fn [db _]
     (:y db)))
+(rf/reg-sub
+  :result
+  (fn [db _]
+    (:result db)))
 
 (defn x-input []
   [:div.field
    [:input.input
     {:type :number
      :value @(rf/subscribe [:x])
-     :on-change #(rf/dispatch [:x-change (-> % .-target .-value)])}]])
+     :on-change #(rf/dispatch [:x-change (js/parseInt(-> % .-target .-value))])
+                  }]])
 
 (defn y-input []
   [:div.field
    [:input.input
     {:type :number
      :value @(rf/subscribe [:y])
-     :on-change #(rf/dispatch [:y-change (-> % .-target .-value)])}]])
+     :on-change #(rf/dispatch [:y-change (js/parseInt(-> % .-target .-value))])}]])
+
+(defn result-field []
+  [:div
+   @(rf/subscribe [:result])])
+
+(defn add-button []
+  [:a.button.is-primary {
+                         :on-click #(rf/dispatch [:add "test"])
+                         } "+"])
 
 
 
@@ -163,7 +192,10 @@
    [:p "Enter First Value:"]
    [x-input]
    [:p "Enter Second Value:"]
-  [y-input]]
+   [y-input]
+   [add-button]
+   [:p "This is a test"]
+   [result-field]]
   )
 
 (defn page []
@@ -193,6 +225,7 @@
 ;; Initialize app
 (defn ^:dev/after-load mount-components []
   (rf/clear-subscription-cache!)
+  (rf/dispatch-sync [:initialize])
   (rdom/render [#'page] (.getElementById js/document "app")))
 
 (defn init! []

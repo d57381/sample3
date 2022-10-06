@@ -9,6 +9,7 @@
     [markdown.core :refer [md->html]]
     [sample3.ajax :as ajax]
     [ajax.core :refer [GET POST]]
+    [ajax.core :as ajx]
     [sample3.events]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
@@ -43,7 +44,7 @@
 
 (defn postSum [data]
       (POST "/api/math/plus"    {:headers {"accept" "application/json"}
-                                 :params {:x @(rf/subscribe [:x]) :y @(rf/subscribe [:y])}
+                                 :params {:x (:x @data) :y (:y @data)}
                                  :handler #(swap! data assoc :result (:total %))})
       )
 
@@ -88,9 +89,28 @@
   (fn [db [_ y-value]]
     (assoc db :y y-value :result 0)))
 (rf/reg-event-db
+  :result-change
+  (fn [db [_ r-value]]
+    (assoc db :result (:total r-value))))
+(rf/reg-event-db
+  :fail
+  (fn []
+    (println "Failure")))
+(rf/reg-event-fx
   :add
-  (fn [db _]
-    (assoc db :result (+ @(rf/subscribe [:x]) @(rf/subscribe [:y])))))
+  (fn [coeffects _]
+    {:http-xhrio {
+                 :method    :post
+                 :uri       "/api/math/plus"
+                 :params    {:x (:x (:db coeffects)) :y (:y (:db coeffects))}
+                 :format    (ajx/json-request-format)
+                 :response-format  (ajx/json-response-format {:keywords? true})
+                 :on-success [:result-change]
+                 :on-failure [:fail]
+                 }}
+
+    ))
+
 (rf/reg-event-db
   :set-zero
   (fn [db _]
@@ -194,7 +214,7 @@
    [:p "Enter Second Value:"]
    [y-input]
    [add-button]
-   [:p "This is a test"]
+   [:p "The result is:"]
    [result-field]]
   )
 
